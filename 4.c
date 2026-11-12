@@ -1,208 +1,448 @@
 // Structures - 1
-
-#include <stdio.h>
+include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define MAX_CAPACITY 10000
 
 typedef struct {
-    int roll;
+    int roll_no;
     char name[50];
     int age;
     float gpa;
 } Student;
 
-Student* create_student_list(int n) {
-    return malloc(n * sizeof(Student));
+int search_student(Student *students, int size, int roll_no);
+int expand_student_list(Student **students, int *capacity);
+
+void clear_input_buffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
 }
 
-void add_student(Student *studs, int i, int roll, char *name, int age, float gpa) {
-    studs[i].roll = roll;
+//student* series of recored
+Student* create_student_list(int n) {
+    Student studs = (Student) malloc(n * sizeof(Student));
+    return studs;
+}
+
+void add_student(Student *studs, int i, char *name, int age, float gpa) {
     strcpy(studs[i].name, name);
     studs[i].age = age;
     studs[i].gpa = gpa;
+
+
+//check wheather the studnet is has valid roll no and unique
+void add_student(Student **studs, int *count, int *capacity) {
+
+    if (*count >= *capacity) {
+        if (!expand_student_list(studs, capacity)) {
+            return;
+        }
+    }
+
+    int roll_no, age;
+    float gpa;
+    char name[52];
+
+    printf("Enter roll number: ");
+    if (scanf("%d", &roll_no) != 1) {
+        printf("Invalid roll number!\n");
+        clear_input_buffer();
+        return;
+    }
+
+
+    if (roll_no <= 0) {
+        printf("Invalid roll number!\n");
+        return;
+    }
+
+    if (search_student(*studs, *count, roll_no) != -1) {
+        printf("Roll number already exists!\n");
+        return;
+    }
+
+    printf("Enter name: ");
+    clear_input_buffer();  // Remove leftover newline
+    if (fgets(name, sizeof(name), stdin) == NULL) {
+        printf("Error reading name!\n");
+        return;
+    }
+
+    if (strchr(name, '\n') == NULL) {
+        printf("Name exceeds storage limit (max 49 characters)!\n");
+        clear_input_buffer();
+        return;
+    }
+//replacd index with 0
+    name[strcspn(name, "\n")] = '\0';
+
+    if (strlen(name) == 0) {
+        printf("Name cannot be empty!\n");
+        return;
+    }
+
+    printf("Enter age: ");
+    if (scanf("%d", &age) != 1 || age < 16 || age > 100) {
+        printf("Invalid age!\n");
+        clear_input_buffer();
+        return;
+    }
+
+    printf("Enter GPA: ");
+    if (scanf("%f", &gpa) != 1 || gpa < 0.0f || gpa > 4.0f) {
+        printf("Invalid GPA!\n");
+        clear_input_buffer();
+        return;
+    }
+
+    // Store student details
+    (*studs)[*count].roll_no = roll_no;
+    strcpy((*studs)[*count].name, name);
+    (*studs)[*count].age = age;
+    (*studs)[*count].gpa = gpa;
+
+    (*count)++;
+
+    printf("Student added successfully\n");
+} 
+
+
+
+//updating student in list
+
+void update_student(Student *studs, int count) {
+
+    int roll_no;
+    int age;
+    float gpa;
+    char name[52];
+
+    printf("Enter roll number to update: ");
+    if (scanf("%d", &roll_no) != 1) {
+        printf("Invalid roll number!\n");
+        clear_input_buffer();
+        return;
+    }
+
+    // Find student
+    int index = search_student(studs, count, roll_no);
+
+    if (index == -1) {
+        printf("Student not found!\n");
+        return;
+    }
+
+    printf("Enter new name: ");
+    clear_input_buffer();
+    if (fgets(name, sizeof(name), stdin) == NULL) {
+        printf("Error reading name!\n");
+        return;
+    }
+
+    if (strchr(name, '\n') == NULL) {
+        printf("Name exceeds storage limit (max 49 characters)!\n");
+        clear_input_buffer();
+        return;
+    }
+
+    name[strcspn(name, "\n")] = '\0';
+
+    if (strlen(name) == 0) {
+        printf("Name cannot be empty!\n");
+        return;
+    }
+
+    printf("Enter new age: ");
+    if (scanf("%d", &age) != 1 || age < 16 || age > 100) {
+        printf("Invalid age!\n");
+        clear_input_buffer();
+        return;
+    }
+
+    printf("Enter new GPA: ");
+    if (scanf("%f", &gpa) != 1 || gpa < 0.0f || gpa > 4.0f) {
+        printf("Invalid GPA!\n");
+        clear_input_buffer();
+        return;
+    }
+
+    // Update existing record
+    strcpy(studs[index].name, name);
+    studs[index].age = age;
+    studs[index].gpa = gpa;
+
+    printf("Student update successful \n");
 }
 
-void display_students(Student *students, int size) {
-    for (int i = 0; i < size; i++)
-        printf("\nRoll: %d, Name: %s, Age: %d, GPA: %.2f",
-        students[i].roll, students[i].name, students[i].age, students[i].gpa);
-    printf("\n");
+
+
+//deleting student records from the list
+
+void delete_student(Student *studs, int *count) {
+
+    int roll_no;
+
+    printf("Enter roll number to delete: ");
+    if (scanf("%d", &roll_no) != 1) {
+        printf("Invalid roll number!\n");
+        clear_input_buffer();
+        return;
+    }
+
+    // Search for student
+    int index = search_student(studs, *count, roll_no);
+
+    if (index == -1) {
+        printf("Student not found!\n");
+        return;
+    }
+
+    // Shift remaining records to the left
+    for (int i = index; i < *count - 1; i++) {
+
+        studs[i] = studs[i + 1];
+
+    }
+
+
+    (*count)--;
+
+    printf("Student deleted successfully!\n");
 }
+
+
+
+//for expanding student list we are using realloc
+
+
+
+int expand_student_list(Student **students, int *capacity) {
+    if (*capacity < 0 || *capacity >= MAX_CAPACITY) {
+        printf("Maximum capacity reached!\n");
+        return 0;
+    }
+
+    int new_capacity;
+    if (*capacity == 0) {
+        new_capacity = 1;
+    } else if (*capacity > MAX_CAPACITY / 2) {
+        new_capacity = MAX_CAPACITY;
+    } else {
+        new_capacity = *capacity * 2;
+    }
+
+    Student *temp = realloc(*students, new_capacity * sizeof(Student));
+    if (temp == NULL) {
+        printf("Memory expansion failed!\n");
+        return 0;
+    }
+
+    *students = temp;
+    *capacity = new_capacity;
+    printf("Memory expanded to %d.\n", *capacity);
+
+    return 1;
+}
+
+
+//for finding highest lowest average gpa
+void gpa_statistics(Student *students, int count) {
+    if (count == 0) {
+        printf("No student records available!\n");
+        return;
+    }
+
+    float highest = students[0].gpa;
+    float lowest = students[0].gpa;
+    float total = 0;
+
+    for (int i = 0; i < count; i++) {
+
+        if (students[i].gpa > highest) {
+            highest = students[i].gpa;
+        }
+
+        if (students[i].gpa < lowest) {
+            lowest = students[i].gpa;
+        }
+
+        total = total + students[i].gpa;
+    }
+
+    printf("Highest GPA: %.2f\n", highest);
+    printf("Lowest GPA: %.2f\n", lowest);
+    printf("Average GPA: %.2f\n", total / count);
+}
+//for sorting our list
+void sort_students(Student *students, int count) {
+
+    for (int i = 0; i < count - 1; i++) {
+
+        for (int j = 0; j < count - i - 1; j++) {
+
+            if ((students[j].gpa < students[j + 1].gpa )||(students[j].gpa == students[j + 1].gpa && students[j].roll_no > students[j + 1].roll_no)) {
+
+                Student temp = students[j];
+                students[j] = students[j + 1];
+                students[j + 1] = temp;
+            }
+        }
+    }
+
+    printf("Students sorted successfully!\n");
+}
+
+
+void display_students(Student *students, int size) {
+    if (size == 0) {
+        printf("No student records to display.\n");
+        return;
+    }
+    for (int i = 0; i < size; i++) {
+        printf("Name: %s, Age: %d, GPA: %.2f\n", students[i].name, students[i].age, students[i].gpa);
+        printf("Roll No: %d, Name: %s, Age: %d, GPA: %.2f\n", students[i].roll_no, students[i].name, students[i].age, students[i].gpa);
+    }
+}
+
+
+
 
 void free_student_list(Student *students) {
     free(students);
 }
 
-int search(Student *s, int n, int roll) {
-    for (int i = 0; i < n; i++)
-        if (s[i].roll == roll) return i;
+
+
+//for searching the student 
+//if roll no not found return -1
+//if roll no found it will retun the index
+int search_student(Student *students, int size, int roll_no) {
+
+    for (int i = 0; i < size; i++) {
+
+        if (students[i].roll_no == roll_no) {
+            return i;
+        }
+    }
+
     return -1;
 }
 
-int main() {
-    int capacity, count = 0, choice, roll, age, pos;
-    float gpa, sum;
-    char name[50], temp[50];
 
-    printf("Enter initial capacity: ");
-    if (scanf("%d", &capacity) != 1 || capacity <= 0 || capacity > 1000000) {
-        printf("Invalid capacity\n");
+
+
+int main() {
+    int number_of_students = 3;
+    Student *student_list = create_student_list(number_of_students);
+
+    add_student(student_list, 0, "Aladdin", 20, 3.5);
+    add_student(student_list, 1, "Batman", 21, 3.7);
+    add_student(student_list, 2, "Catwoman", 22, 3.8);
+    int capacity;
+    int count = 0;
+    int choice;
+
+    display_students(student_list, number_of_students);
+    printf("Enter no student u want to fit in list  total capcity of memory: ");
+
+    free_student_list(student_list);
+    if (scanf("%d", &capacity) != 1 || capacity <= 0 || capacity > MAX_CAPACITY) {
+        printf("Invalid capacity!\n");
         return 1;
     }
 
     Student *student_list = create_student_list(capacity);
-    if (!student_list) {
-        printf("Memory allocation failed\n");
+
+    if (student_list == NULL) {
+        printf("Memory allocation failed!\n");
         return 1;
     }
 
-    do {
-        printf("\n\n1.Add  2.Display  3.Search  4.Update");
-        printf("\n5.Delete  6.GPA Analysis  7.Sort  8.Exit");
-        printf("\nEnter choice: ");
+    while (1) {
+
+        printf(" STUDENT MANAGEMENT SYSTEM \n");
+        printf("1. Add Student\n");
+        printf("2. Display Students\n");
+        printf("3. Search Student\n");
+        printf("4. Update Student\n");
+        printf("5. Delete Student\n");
+        printf("6. GPA Statistics\n");
+        printf("7. Sort Students\n");
+        printf("8. Exit\n");
+
+        printf("Enter your choice: ");
 
         if (scanf("%d", &choice) != 1) {
-            printf("Invalid input\n");
-            break;
+            printf("Invalid input!\n");
+            clear_input_buffer();
+            continue;
         }
 
-        if (choice == 1) {
-            printf("Enter roll number: ");
-            scanf("%d", &roll);
+        switch (choice) {
 
-            if (roll <= 0 || search(student_list, count, roll) != -1) {
-                printf("Invalid or duplicate roll number\n");
-                continue;
-            }
+            case 1:
+                add_student(&student_list, &count, &capacity);
+                break;
 
-            printf("Enter name: ");
-            scanf(" %49[^\n]", name);
+            case 2:
+                display_students(student_list, count);
+                break;
 
-            printf("Enter age: ");
-            scanf("%d", &age);
+            case 3: {
+                int roll_no;
 
-            printf("Enter GPA: ");
-            scanf("%f", &gpa);
+                printf("Enter roll number: ");
 
-            if (age < 16 || age > 100 || gpa < 0 || gpa > 4) {
-                printf("Invalid age or GPA\n");
-                continue;
-            }
-
-            if (count == capacity) {
-                if (capacity > 1000000 / 2) {
-                    printf("Maximum capacity reached\n");
-                    continue;
+                if (scanf("%d", &roll_no) != 1) {
+                    printf("Invalid roll number!\n");
+                    clear_input_buffer();
+                    break;
                 }
-                int new_capacity = capacity * 2;
-                Student *temp_ptr = realloc(student_list, new_capacity * sizeof(Student));
-                if (!temp_ptr) {
-                    printf("Memory allocation failed\n");
-                    continue;
+
+                int index = search_student(student_list, count, roll_no);
+
+                if (index == -1) {
+                    printf("Student not found!\n");
                 }
-                student_list = temp_ptr;
-                capacity = new_capacity;
+                else {
+                    printf("\nStudent found!\n");
+                    printf("Roll No: %d\n", student_list[index].roll_no);
+                    printf("Name: %s\n", student_list[index].name);
+                    printf("Age: %d\n", student_list[index].age);
+                    printf("GPA: %.2f\n", student_list[index].gpa);
+                }
+
+                break;
             }
 
-            add_student(student_list, count++, roll, name, age, gpa);
-            printf("Student added successfully\n");
+            case 4:
+                update_student(student_list, count);
+                break;
+
+            case 5:
+                delete_student(student_list, &count);
+                break;
+
+            case 6:
+                gpa_statistics(student_list, count);
+                break;
+
+            case 7:
+                sort_students(student_list, count);
+                break;
+
+            case 8:
+                free_student_list(student_list);
+                printf("Memory released successfully!\n");
+                printf("Exiting program...\n");
+                return 0;
+
+            default:
+                printf("Invalid choice! Try again.\n");
         }
-
-        else if (choice == 2) {
-            if (!count) printf("No student records\n");
-            else display_students(student_list, count);
-        }
-
-        else if (choice == 3) {
-            printf("Enter roll number: ");
-            scanf("%d", &roll);
-            pos = search(student_list, count, roll);
-
-            if (pos == -1) printf("Student not found\n");
-            else display_students(&student_list[pos], 1);
-        }
-
-        else if (choice == 4) {
-            printf("Enter roll number: ");
-            scanf("%d", &roll);
-            pos = search(student_list, count, roll);
-
-            if (pos == -1) {
-                printf("Student not found\n");
-                continue;
-            }
-
-            printf("Enter new name: ");
-            scanf(" %49[^\n]", name);
-            printf("Enter new age and GPA: ");
-            scanf("%d %f", &age, &gpa);
-
-            if (age < 16 || age > 100 || gpa < 0 || gpa > 4) {
-                printf("Invalid age or GPA\n");
-                continue;
-            }
-
-            strcpy(student_list[pos].name, name);
-            student_list[pos].age = age;
-            student_list[pos].gpa = gpa;
-            printf("Record updated\n");
-        }
-
-        else if (choice == 5) {
-            printf("Enter roll number: ");
-            scanf("%d", &roll);
-            pos = search(student_list, count, roll);
-
-            if (pos == -1) printf("Student not found\n");
-            else {
-                for (int i = pos; i < count - 1; i++)
-                    student_list[i] = student_list[i + 1];
-                count--;
-                printf("Student deleted\n");
-            }
-        }
-
-        else if (choice == 6) {
-            if (!count) {
-                printf("No records available for GPA analysis\n");
-                continue;
-            }
-
-            int high = 0, low = 0;
-            sum = 0;
-
-            for (int i = 0; i < count; i++) {
-                sum += student_list[i].gpa;
-                if (student_list[i].gpa > student_list[high].gpa) high = i;
-                if (student_list[i].gpa < student_list[low].gpa) low = i;
-            }
-
-            printf("Highest GPA: %s (%.2f)\n", student_list[high].name, student_list[high].gpa);
-            printf("Lowest GPA: %s (%.2f)\n", student_list[low].name, student_list[low].gpa);
-            printf("Average GPA: %.2f\n", sum / count);
-        }
-
-        else if (choice == 7) {
-            for (int i = 0; i < count - 1; i++)
-                for (int j = i + 1; j < count; j++)
-                    if (student_list[i].gpa < student_list[j].gpa ||
-                    (student_list[i].gpa == student_list[j].gpa &&
-                    student_list[i].roll > student_list[j].roll)) {
-                        Student t = student_list[i];
-                        student_list[i] = student_list[j];
-                        student_list[j] = t;
-                    }
-
-            printf("Records sorted by GPA (descending)\n");
-            display_students(student_list, count);
-        }
-
-        else if (choice != 8)
-            printf("Invalid choice\n");
-
-    } while (choice != 8);
+    }
 
     free_student_list(student_list);
-    printf("Memory released. Program ended.\n");
     return 0;
 }
